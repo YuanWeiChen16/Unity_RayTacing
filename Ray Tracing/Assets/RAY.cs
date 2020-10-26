@@ -25,23 +25,24 @@ public class RAY : MonoBehaviour
     {
         if (Input.GetKey(KeyCode.W))
         {
-            startPoint.y += 0.1f;
+            startPoint.y += 0.5f;
         }
         if (Input.GetKey(KeyCode.S))
         {
-            startPoint.y -= 0.1f;
+            startPoint.y -= 0.5f;
         }
         if (Input.GetKey(KeyCode.D))
         {
-            startPoint.x += 0.1f;
+            startPoint.x += 0.5f;
         }
         if (Input.GetKey(KeyCode.A))
         {
-            startPoint.x -= 0.1f;
+            startPoint.x -= 0.5f;
         }
+
         MyRay = ThisCamera.ScreenPointToRay(startPoint);
 
-        if (Physics.Raycast(MyRay, out MYRayHit, 50f))
+        if (Physics.Raycast(MyRay, out MYRayHit, 2000f))
         {
             if (Input.GetKeyDown(KeyCode.R))
             {
@@ -50,13 +51,12 @@ public class RAY : MonoBehaviour
                 for (int i = 0; i < secondCount; i++)
                 {
                     SecondRay[i] = new Ray(MYRayHit.point, new Vector3(Random.Range(-1f, 1f) + MYRayHit.normal.x, Random.Range(-1f, 1f) + MYRayHit.normal.y, Random.Range(-1f, 1f) + MYRayHit.normal.z));
-                    Physics.Raycast(SecondRay[i], out SecondRayHit[i], 50f);
+                    Physics.Raycast(SecondRay[i], out SecondRayHit[i], 5000f);
                 }
             }
         }
     }
-
-    private void OnDrawGizmos()
+    private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;
         Gizmos.DrawLine(MyRayHitStart, MYRayHit.point);

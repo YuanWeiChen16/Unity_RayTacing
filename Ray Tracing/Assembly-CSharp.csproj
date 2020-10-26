@@ -63,6 +63,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\RAY.cs" />
+    <None Include="Assets\Example Scenes\sibenik\copyright.txt" />
+    <None Include="Assets\Example Scenes\scene\sibenik\copyright.txt" />
+    <None Include="Assets\Example Scenes\pbrt-exe\使用說明.txt" />
     <Reference Include="UnityEngine">
       <HintPath>C:/Program Files/unity20190313/Unity/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
     </Reference>
