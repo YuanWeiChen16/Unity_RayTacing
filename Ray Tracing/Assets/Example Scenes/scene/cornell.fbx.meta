@@ -3,7 +3,32 @@ guid: b46f7101f546f4b42b72a39fb5fc33c0
 ModelImporter:
   serializedVersion: 19300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: No Name
+    second: {fileID: 2100000, guid: ca7c34e302d52dc48af50279a6e96742, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: diffuse.green
+    second: {fileID: 2100000, guid: a0b1b873d77dbfa44b28655664be787d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: diffuse.red
+    second: {fileID: 2100000, guid: c22b2280513c0a24cbe623aa44df9740, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: diffuse.white
+    second: {fileID: 2100000, guid: a7f5ae623f36a0449981abd6d28b94a5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: emissive.fake
+    second: {fileID: 2100000, guid: cfe6107f6b980e8449817c77a2a3129d, type: 2}
   materials:
     materialImportMode: 1
     materialName: 0
