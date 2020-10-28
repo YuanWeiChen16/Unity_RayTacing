@@ -1,1 +1,4 @@
-Ray Tracing/Library/
+# unity ignore dir
+/[Bb]in/
+/[Ll]ibrary/
+/[Tt]emp/
