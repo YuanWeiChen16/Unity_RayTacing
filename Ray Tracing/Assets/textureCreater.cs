@@ -107,8 +107,47 @@ public class textureCreater : MonoBehaviour
                     return Color.black;
                 }
             }
-            else if (MYRayHit.collider.tag == "dielectric ")
+            else if (MYRayHit.collider.tag == "dielectric")
             {
+                Vector3 out_normal = Vector3.zero;
+                Vector3 reflected = reflect(Input.direction, MYRayHit.normal);
+                float reffactor = 1.5f;
+                float realfactor = 1.5f;
+                attenuation = Color.white;
+                Vector3 refracted = Vector3.zero;
+                float reflectp = 0f;
+                float cosine = 0f;
+                if (Vector3.Dot(Input.direction, MYRayHit.normal) > 0)
+                {
+                    out_normal = -MYRayHit.normal;
+                    realfactor = reffactor;
+                    cosine = reffactor * Vector3.Dot(Input.direction, MYRayHit.normal) / Input.direction.magnitude;
+                }
+                else
+                {
+                    out_normal = MYRayHit.normal;
+                    realfactor = 1.0f / reffactor;
+                    cosine = -Vector3.Dot(Input.direction, MYRayHit.normal) / Input.direction.magnitude;
+                }
+                if (refract(Input.direction, out_normal, realfactor, ref refracted))
+                {
+                    float r = (1f - reffactor) / (1f + reffactor);
+                    r = r * r;
+                    reflectp = r + (1 - r) * Mathf.Pow((1 - cosine), 5);
+                }
+                else
+                {
+                    scattered = new Ray(MYRayHit.point, reflected);
+                    reflectp = 1.0f;
+                }
+                if (Random48.Get() < reflectp)
+                {
+                    scattered = new Ray(MYRayHit.point, reflected);
+                }
+                else
+                {
+                    scattered = new Ray(MYRayHit.point, refracted);
+                }
                 emitted = Color.black;
             }
             return emitted + attenuation * RHit(scattered, ++BoundTime);
@@ -117,5 +156,22 @@ public class textureCreater : MonoBehaviour
         {
             return Color.black;
         }
+    }
+    Vector3 reflect(Vector3 v, Vector3 n)
+    {
+        return v - 2 * Vector3.Dot(v, n) * n;
+    }
+
+    bool refract(Vector3 v, Vector3 n, float reffactor, ref Vector3 refracted)
+    {
+        Vector3 v_norm = v.normalized;
+        float dotvn = Vector3.Dot(v_norm, n);
+        float checkrefract = 1.0f - reffactor * reffactor * (1.0f - dotvn * dotvn);
+        if (checkrefract > 0)
+        {
+            refracted = reffactor * (v_norm - n * dotvn) - n * Mathf.Sqrt(checkrefract);
+            return true;
+        }
+        else return false;
     }
 }
