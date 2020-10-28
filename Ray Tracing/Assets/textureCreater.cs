@@ -11,16 +11,11 @@ public class textureCreater : MonoBehaviour
     public int texture_SuperSample = 32;
     public int texture_boundtime = 4;
     Texture2D tex;
-    float[] Bterm = new float[5];
 
     // Start is called before the first frame update
     void Start()
     {
-        Bterm[0] = 1;
-        Bterm[1] = 0.5f;
-        Bterm[2] = 0.5f * 0.5f;
-        Bterm[3] = 0.5f * 0.5f * 0.5f;
-        Bterm[4] = 0.5f * 0.5f * 0.5f * 0.5f;
+
     }
 
     // Update is called once per frame
@@ -41,6 +36,12 @@ public class textureCreater : MonoBehaviour
                     }
                     targetColor = targetColor / texture_SuperSample;
                     targetColor.a = 1.0f;
+
+                    //float scale = 1.0f / texture_SuperSample;
+                    //targetColor.r = Mathf.Sqrt(scale * targetColor.r);
+                    //targetColor.g = Mathf.Sqrt(scale * targetColor.g);
+                    //targetColor.b = Mathf.Sqrt(scale * targetColor.b);
+
                     tex.SetPixel(i, j, targetColor);
                 }
             }
@@ -55,38 +56,22 @@ public class textureCreater : MonoBehaviour
     {
         RaycastHit MYRayHit;
         Color color = Color.black;
-        //if (BoundTime == 0)
+        
+        //if (BoundTime >= texture_boundtime)
         //{
-        //    if (Physics.Raycast(Input, out MYRayHit, 2000f))
+        //    Vector3 Ldir = ThisLight.GetComponent<Transform>().position - Input.origin;
+        //    Ray NRay = new Ray(Input.origin, Ldir.normalized);
+        //    if (Physics.Raycast(NRay, out MYRayHit, 2000f))
         //    {
-        //        Renderer renderer = MYRayHit.collider.GetComponent<MeshRenderer>();
-        //        if (MYRayHit.collider.tag == "Light")
+        //        if (MYRayHit.collider.tag == "Light")//done
         //        {
-        //            return Color.white;
+        //            return Color.white * 4;
         //        }
-        //        else
-        //        {
-        //            Vector3 targetDir = MYRayHit.normal.normalized + new Vector3(Random.Range(-1, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized;                    
-        //            color = renderer.material.color * RHit(new Ray(MYRayHit.point, targetDir), BoundTime + 1);
-        //        }
-        //        //color = renderer.material.color;
-        //        //}
-        //        return color;
         //    }
+        //    return Color.black;
         //}
-        if (BoundTime >= texture_boundtime)
-        {
-            Vector3 Ldir = ThisLight.GetComponent<Transform>().position - Input.origin;
-            Ray NRay = new Ray(Input.origin, Ldir.normalized);
-            if (Physics.Raycast(NRay, out MYRayHit, 2000f))
-            {
-                if (MYRayHit.collider.tag == "Light")//done
-                {
-                    return Color.white * 3;
-                }
-            }
-            return Color.black;
-        }
+
+
         if (Physics.Raycast(Input, out MYRayHit, 2000f) && (BoundTime < texture_boundtime))
         {
             Renderer renderer = MYRayHit.collider.GetComponent<MeshRenderer>();
@@ -97,25 +82,35 @@ public class textureCreater : MonoBehaviour
             if (MYRayHit.collider.tag == "Light")//done
             {
 
-                return Color.white * 3;
+                return Color.white * 4;
             }
             else if (MYRayHit.collider.tag == "lambertian")
             {
                 emitted = Color.black;
                 Vector3 scatter_direction = MYRayHit.normal + new Vector3(Random.Range(-1, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized;
                 scattered = new Ray(MYRayHit.point, scatter_direction);
-                attenuation = renderer.material.color * 0.5f;
+                attenuation = renderer.material.color;
             }
             else if (MYRayHit.collider.tag == "metal")
             {
+                float fuzz = 0.1f;
                 emitted = Color.black;
+                Vector3 reflected = Vector3.Reflect(Input.direction.normalized, MYRayHit.normal);
+                scattered = new Ray(MYRayHit.point, reflected + fuzz * new Vector3(Random.Range(-1, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized);
+                attenuation = renderer.material.color;
+                if (Vector3.Dot(scattered.direction, MYRayHit.normal) > 0)
+                {
 
-
+                }
+                else
+                {
+                    return Color.black;
+                }
             }
             else if (MYRayHit.collider.tag == "dielectric ")
             {
                 emitted = Color.black;
-            }          
+            }
             return emitted + attenuation * RHit(scattered, ++BoundTime);
         }
         else
