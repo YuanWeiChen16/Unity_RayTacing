@@ -23,6 +23,9 @@ public class textureCreater : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.R))
         {
+            //timer
+            System.Diagnostics.Stopwatch time = new System.Diagnostics.Stopwatch();
+            time.Start();
             tex = new Texture2D(texture_width, texture_height);
             for (int i = 0; i < texture_width; i++)
             {
@@ -48,6 +51,8 @@ public class textureCreater : MonoBehaviour
             Debug.Log("Saving....");
             var bytes = tex.EncodeToPNG();
             File.WriteAllBytes(Path.Combine(Application.dataPath, "img.png"), bytes);
+            time.Stop();
+            Debug.Log("Ray tracing 執行 " + time.Elapsed.TotalSeconds + " 秒");
         }
     }
 
@@ -81,15 +86,16 @@ public class textureCreater : MonoBehaviour
 
             if (MYRayHit.collider.tag == "Light")//done
             {
-
-                return Color.white * 4;
+            
+                return Color.white * 6;
             }
             else if (MYRayHit.collider.tag == "lambertian")
             {
                 emitted = Color.black;
                 Vector3 scatter_direction = MYRayHit.normal + new Vector3(Random.Range(-1, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized;
                 scattered = new Ray(MYRayHit.point, scatter_direction);
-                attenuation = renderer.material.color;
+                getPixelColor(MYRayHit, ref attenuation);
+                attenuation *= renderer.material.color;
             }
             else if (MYRayHit.collider.tag == "metal")
             {
@@ -97,7 +103,8 @@ public class textureCreater : MonoBehaviour
                 emitted = Color.black;
                 Vector3 reflected = Vector3.Reflect(Input.direction.normalized, MYRayHit.normal);
                 scattered = new Ray(MYRayHit.point, reflected + fuzz * new Vector3(Random.Range(-1, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized);
-                attenuation = renderer.material.color;
+                getPixelColor(MYRayHit, ref attenuation);
+                attenuation *= renderer.material.color;
                 if (Vector3.Dot(scattered.direction, MYRayHit.normal) > 0)
                 {
 
@@ -173,5 +180,32 @@ public class textureCreater : MonoBehaviour
             return true;
         }
         else return false;
+    }
+    void getPixelColor(RaycastHit hit, ref Color pixelColor)
+    {
+        if (hit.collider != null && hit.collider.GetComponent<MeshRenderer>() != null)
+        {
+            MeshRenderer render = hit.collider.GetComponent<MeshRenderer>();
+            pixelColor = Color.black;
+            if (render.material != null)
+            {
+                if (render.material.mainTexture != null)
+                {
+                    Texture2D tex = render.material.mainTexture as Texture2D;
+                    Vector2 uv = hit.textureCoord;
+                    uv.x *= tex.width;
+                    uv.y *= tex.height;
+
+                    Vector2 tiling = render.material.mainTextureScale;
+                    pixelColor = tex.GetPixel(Mathf.FloorToInt(uv.x * tiling.x), Mathf.FloorToInt(uv.y * tiling.y));
+
+                }
+                else
+                {
+                    pixelColor = render.material.GetColor("_Color");
+                }
+                //Debug.Log("Pixel Color: " + render.material.GetColor("_Color"));
+            }
+        }
     }
 }

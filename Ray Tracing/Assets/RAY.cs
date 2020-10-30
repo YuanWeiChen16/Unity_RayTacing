@@ -13,7 +13,7 @@ public class RAY : MonoBehaviour
     public Ray[] SecondRay;
     public RaycastHit[] SecondRayHit;
     public Vector3 startPoint;
-
+    bool status = false;
     // Start is called before the first frame update
     void Start()
     {
@@ -46,6 +46,7 @@ public class RAY : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.R))
             {
+                status = true;
                 SecondRay = new Ray[secondCount];
                 SecondRayHit = new RaycastHit[secondCount];
                 for (int i = 0; i < secondCount; i++)
@@ -65,19 +66,47 @@ public class RAY : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawSphere(MYRayHit.point, 0.25f);
 
-        for (int i = 0; i < secondCount; i++)
+        if(MYRayHit.collider != null && MYRayHit.collider.GetComponent<MeshRenderer>() != null)
         {
-
-            Gizmos.color = Color.white;
-            Gizmos.DrawLine(MYRayHit.point, SecondRayHit[i].point);
-            Gizmos.color = Color.cyan;
-            Gizmos.DrawRay(SecondRay[i]);
-            Gizmos.color = Color.yellow;
-            if (SecondRayHit[i].collider.tag == "Light")
+            MeshRenderer render = MYRayHit.collider.GetComponent<MeshRenderer>();
+            Color pixelColor = Color.white;
+            if (render.material != null)
             {
-                Gizmos.color = Color.blue;
+                if(render.material.mainTexture != null)
+                {
+                    Texture2D tex = render.material.GetTexture("_MainTex") as Texture2D;
+                    Vector2 uv = MYRayHit.textureCoord;
+                    uv.x *= tex.width;
+                    uv.y *= tex.height;
+
+                    Vector2 tiling = render.material.mainTextureScale;
+                    pixelColor = tex.GetPixel(Mathf.FloorToInt(uv.x * tiling.x), Mathf.FloorToInt(uv.y * tiling.y));
+
+                }
+                else
+                {
+                    pixelColor = render.material.GetColor("_Color");
+                }
+                Debug.Log("Pixel Color: " + pixelColor);
             }
-            Gizmos.DrawSphere(SecondRayHit[i].point, 0.25f);
         }
+        if(status)
+        {
+            for (int i = 0; i < secondCount; i++)
+            {
+
+                Gizmos.color = Color.white;
+                Gizmos.DrawLine(MYRayHit.point, SecondRayHit[i].point);
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawRay(SecondRay[i]);
+                Gizmos.color = Color.yellow;
+                if (SecondRayHit[i].collider.tag == "Light")
+                {
+                    Gizmos.color = Color.blue;
+                }
+                Gizmos.DrawSphere(SecondRayHit[i].point, 0.25f);
+            }
+        }
+       
     }
 }
