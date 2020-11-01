@@ -99,9 +99,11 @@ public class textureCreater : MonoBehaviour
             }
             else if (MYRayHit.collider.tag == "metal")
             {
-                float fuzz = 0.1f;
+                float fuzz = 0.01f;
                 emitted = Color.black;
-                Vector3 reflected = Vector3.Reflect(Input.direction.normalized, MYRayHit.normal);
+                Vector3 outNor = MYRayHit.normal;
+                getPixelNormal(MYRayHit,ref outNor);
+                Vector3 reflected = Vector3.Reflect(Input.direction.normalized,  outNor);
                 scattered = new Ray(MYRayHit.point, reflected + fuzz * new Vector3(Random.Range(-1, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized);
                 getPixelColor(MYRayHit, ref attenuation);
                 attenuation *= renderer.material.color;
@@ -205,6 +207,39 @@ public class textureCreater : MonoBehaviour
                     pixelColor = render.material.GetColor("_Color");
                 }
                 //Debug.Log("Pixel Color: " + render.material.GetColor("_Color"));
+            }
+        }
+    }
+
+    void getPixelNormal(RaycastHit hit, ref Vector3 pixelNormal)
+    {
+        {
+            if (hit.collider != null && hit.collider.GetComponent<MeshRenderer>() != null)
+            {
+                MeshRenderer render = hit.collider.GetComponent<MeshRenderer>();
+                pixelNormal = new Vector3(0,0,1);
+                if (render.material != null)
+                {
+                    if (render.material.GetTexture("_BumpMap") != null)
+                    {
+                        Texture2D tex = render.material.GetTexture("_BumpMap") as Texture2D;
+                        Vector2 uv = hit.textureCoord;
+                        uv.x *= tex.width;
+                        uv.y *= tex.height;
+
+                        Vector2 tiling = render.material.GetTextureScale("_BumpMap");
+                        Color NC =  tex.GetPixel(Mathf.FloorToInt(uv.x * tiling.x), Mathf.FloorToInt(uv.y * tiling.y));
+                        NC.r = NC.r * 2 - 1;
+                        NC.g = NC.g * 2 - 1;
+                        NC.b = NC.b * 2 - 1;
+                        pixelNormal = new Vector3(NC.r,NC.g,NC.b);
+                    }
+                    else
+                    {
+                        pixelNormal = hit.normal;
+                    }
+                    //Debug.Log("Pixel Color: " + render.material.GetColor("_Color"));
+                }
             }
         }
     }

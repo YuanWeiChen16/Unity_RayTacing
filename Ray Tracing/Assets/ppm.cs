@@ -19,6 +19,7 @@ public class ppm : MonoBehaviour
     int[,,] HitPoint_photonNum;
     float[,,] HitPoint_R;
     float[,,] HitPoint_Light;
+    Color[,,] HitPoint_Color;
     // Start is called before the first frame update
     void Start()
     {
@@ -35,6 +36,7 @@ public class ppm : MonoBehaviour
                     HitPoint_photonNum[i, j, k] = 0;
                     HitPoint_R[i, j, k] = InitR;
                     HitPoint_Light[i, j, k] = 0.0f;
+                    HitPoint_Color[i, j, k] = Color.black;
                 }
             }
         }
@@ -60,21 +62,19 @@ public class ppm : MonoBehaviour
                 }
             }
 
-            for (int t = 0; t < Photon_iter_Time; t++)
+            PhotonPass();
+            for (int i = 0; i < texture_width; i++)
             {
-                for (int i = 0; i < texture_width; i++)
+                for (int j = 0; j < texture_height; j++)
                 {
-                    for (int j = 0; j < texture_height; j++)
+                    Color temp = Color.black;
+                    for (int k = 0; k < texture_SuperSample; k++)
                     {
-                        for (int ph = 0; ph < OneTimePhoton; ph++)
-                        {
-
-                        }
+                        temp += (HitPoint_Color[i,j,k]/ HitPoint_photonNum[i,j,k]);
                     }
+                    tex.SetPixel(i, j , temp/ (float)texture_SuperSample);
                 }
             }
-
-
             Debug.Log("Saving....");
             var bytes = tex.EncodeToPNG();
             File.WriteAllBytes(Path.Combine(Application.dataPath, "img_PPM.png"), bytes);
@@ -167,9 +167,44 @@ public class ppm : MonoBehaviour
 
     void PhotonPass()
     {
-        for (int i = 0; i < OneTimePhoton; i++)
+        for (int t = 0; t < OneTimePhoton; t++)
         {
+            Ray LightRay = new Ray(ThisLight.GetComponent<Transform>().position, new Vector3(Random.Range(1, -1), Random.Range(1, -1), Random.Range(1, -1)).normalized);
+            Color PhotonColor = Color.white;
+            for (int b = 0; b < texture_boundtime; b++)
+            {
+                RaycastHit MYRayHit;
+                if (Physics.Raycast(LightRay, out MYRayHit, 2000f))
+                {
+                    Color pColor = Color.black;
+                    getPixelColor(MYRayHit, ref pColor);
+                    PhotonColor = PhotonColor * pColor;
+                    for (int i = 0; i < texture_width; i++)
+                    {
+                        for (int j = 0; j < texture_height; j++)
+                        {
+                            for (int k = 0; k < texture_SuperSample; k++)
+                            {
+                                float temp = (MYRayHit.point - HitPoint_position[i, j, k]).magnitude;
 
+                                if (temp < HitPoint_R[i, j, k])
+                                {
+                                    ++HitPoint_photonNum[i, j, k];
+                                    HitPoint_Color[i, j, k] += PhotonColor;
+                                }
+                            }
+                        }
+                    }
+
+                } 
+                else
+                {
+                    break;
+                }
+
+                LightRay.origin = MYRayHit.point;
+                LightRay.direction = MYRayHit.normal + new Vector3(Random.Range(1, -1), Random.Range(1, -1), Random.Range(1, -1)).normalized;
+            }            
         }
     }
 
