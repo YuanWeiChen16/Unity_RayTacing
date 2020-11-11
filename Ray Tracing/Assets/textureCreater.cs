@@ -11,11 +11,11 @@ public class textureCreater : MonoBehaviour
     public int texture_SuperSample = 32;
     public int texture_boundtime = 4;
     Texture2D tex;
-
+    reclight lights;
     // Start is called before the first frame update
     void Start()
     {
-
+        lights = new reclight(ThisLight);
     }
 
     // Update is called once per frame
@@ -83,26 +83,43 @@ public class textureCreater : MonoBehaviour
             Ray scattered = new Ray();
             Color attenuation = Color.black;
             Color emitted = Color.black;
-
+            float scatter_pdf = 1f;
+            float pdf_val = 1f;
+            float coef = 1f;
             if (MYRayHit.collider.tag == "Light")//done
             {
-            
-                return Color.white * 6;
+                return Color.white * 3;
             }
             else if (MYRayHit.collider.tag == "lambertian")
             {
-                emitted = Color.black;
-                Vector3 scatter_direction = MYRayHit.normal + new Vector3(Random.Range(-1, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized;
-                scattered = new Ray(MYRayHit.point, scatter_direction);
+                emitted = new Color(0.15f,0.15f,0.15f);
+                //Vector3 scatter_direction = MYRayHit.normal + new Vector3(Random.Range(-1, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized;
+                //scattered = new Ray(MYRayHit.point, scatter_direction);
                 getPixelColor(MYRayHit, ref attenuation);
                 attenuation *= renderer.material.color;
+                Vector3[] onb = new Vector3[3];
+                build_onb(MYRayHit.normal, ref onb);
+                Vector3 cos_pdf = cos_pdf_generate(onb);
+                Vector3 light_pdf = lights.generate(MYRayHit.point);
+
+                Vector3 scatter_dir = (Random.Range(0f, 1f) < 0.5f) ? cos_pdf : light_pdf;
+                scattered = new Ray(MYRayHit.point, scatter_dir.normalized);
+
+                float cos = Vector3.Dot(scatter_dir.normalized, onb[2]);
+                float cos_value = (cos > 0) ? (cos / 3.141592f) : 0;
+                float light_value = lights.pdf_value(Input, MYRayHit.point, scatter_dir.normalized);
+                pdf_val = 0.5f * cos_value + 0.5f * light_value;
+                scatter_pdf = (cos < 0) ? 0 : (Vector3.Dot(MYRayHit.normal, scatter_dir.normalized) / 3.141592f);
+                coef = scatter_pdf / pdf_val;
+                if (coef > 1.2) coef = 1.2f;
+                //scatter_pdf *= 1.2f;
             }
             else if (MYRayHit.collider.tag == "metal")
             {
                 float fuzz = 0.1f;
                 emitted = Color.black;
                 Vector3 reflected = Vector3.Reflect(Input.direction.normalized, MYRayHit.normal);
-                scattered = new Ray(MYRayHit.point, reflected + fuzz * new Vector3(Random.Range(-1, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized);
+                scattered = new Ray(MYRayHit.point, reflected + fuzz * Random48.random_cosine_direction());
                 getPixelColor(MYRayHit, ref attenuation);
                 attenuation *= renderer.material.color;
                 if (Vector3.Dot(scattered.direction, MYRayHit.normal) > 0)
@@ -144,7 +161,7 @@ public class textureCreater : MonoBehaviour
                 }
                 else
                 {
-                    scattered = new Ray(MYRayHit.point, reflected);
+                    //scattered = new Ray(MYRayHit.point, reflected);
                     reflectp = 1.0f;
                 }
                 if (Random48.Get() < reflectp)
@@ -157,7 +174,7 @@ public class textureCreater : MonoBehaviour
                 }
                 emitted = Color.black;
             }
-            return emitted + attenuation * RHit(scattered, ++BoundTime);
+            return emitted + attenuation * RHit(scattered, ++BoundTime) * coef;
         }
         else
         {
@@ -208,4 +225,68 @@ public class textureCreater : MonoBehaviour
             }
         }
     }
+    void build_onb(Vector3 n, ref Vector3[] onb)
+    {
+        onb[2] = n.normalized;
+        Vector3 a;
+        if (Mathf.Abs(onb[2].x) > 0.9)
+            a = new Vector3(0, 1, 0);
+        else a = new Vector3(1, 0, 0);
+        onb[1] = Vector3.Cross(onb[2], a).normalized;
+        onb[0] = Vector3.Cross(onb[2], onb[1]);
+    }
+    Vector3 cos_pdf_generate(Vector3[] onb)
+    {
+        Vector3 coef = random_cosine_direction();
+        return coef.x * onb[0] + coef.y * onb[1] + coef.z * onb[2];
+    }
+    Vector3 random_cosine_direction()
+    {
+        float r1 = Random48.Get();
+        float r2 = Random48.Get();
+        float z = Mathf.Sqrt(1 - r2);
+        float phi = 2 * 3.141592f * r1;
+        float x = Mathf.Cos(phi) * Mathf.Sqrt(r2);
+        float y = Mathf.Sin(phi) * Mathf.Sqrt(r2);
+        return new Vector3(x, y, z);
+    }
+}
+
+public class reclight
+{
+    public reclight(GameObject Light)
+    {
+        Bounds bound = Light.GetComponent<MeshFilter>().sharedMesh.bounds;
+        max = new Vector2(bound.max.x, bound.max.z);
+        min = new Vector2(bound.min.x, bound.min.z);
+        k = Mathf.Abs(bound.max.y - bound.min.y);
+    }
+    public float pdf_value(Ray Input, Vector3 origin, Vector3 v)
+    {
+        RaycastHit rec;
+        if (!Physics.Raycast(new Ray(origin, v), out rec, 100f))
+            return 0;
+        float t = rec.distance;
+        float area = 60f;
+        float distance_squared = t * t * v.sqrMagnitude;
+        float cos = Mathf.Abs(Vector3.Dot(v, rec.normal)) / v.magnitude;
+        return distance_squared / (cos * area);
+
+    }
+
+    public Vector3 random(Vector3 origin)
+    {
+        Vector3 point = new Vector3(Random.Range(min.x, max.x), k, Random.Range(min.y, max.y));
+        return point - origin;
+    }
+    
+    public Vector3 generate(Vector3 origin)
+    {
+        if (Random48.Get() < 0.5)
+            return random(origin);
+        else return random(origin);
+    }
+    Vector2 max = Vector2.zero;
+    Vector2 min = Vector2.zero;
+    float k = 0;
 }
