@@ -50,7 +50,7 @@ public class textureCreater : MonoBehaviour
             }
             Debug.Log("Saving....");
             var bytes = tex.EncodeToPNG();
-            File.WriteAllBytes(Path.Combine(Application.dataPath, "img.png"), bytes);
+            File.WriteAllBytes(Path.Combine(Application.dataPath, "img_2023.png"), bytes);
             time.Stop();
             Debug.Log("Ray tracing 執行 " + time.Elapsed.TotalSeconds + " 秒");
         }
@@ -86,10 +86,12 @@ public class textureCreater : MonoBehaviour
             float scatter_pdf = 1f;
             float pdf_val = 1f;
             float coef = 1f;
+            //燈光
             if (MYRayHit.collider.tag == "Light")//done
             {
                 return Color.white * 3;
             }
+            //普通物體
             else if (MYRayHit.collider.tag == "lambertian")
             {
                 emitted = new Color(0.15f,0.15f,0.15f);
@@ -114,6 +116,7 @@ public class textureCreater : MonoBehaviour
                 if (coef > 1.2) coef = 1.2f;
                 //scatter_pdf *= 1.2f;
             }
+            //金屬 純鏡面反射
             else if (MYRayHit.collider.tag == "metal")
             {
                 float fuzz = 0.01f;
@@ -135,6 +138,7 @@ public class textureCreater : MonoBehaviour
                     return Color.black;
                 }
             }
+            //玻璃類 透明物質
             else if (MYRayHit.collider.tag == "dielectric")
             {
                 Vector3 out_normal = Vector3.zero;
